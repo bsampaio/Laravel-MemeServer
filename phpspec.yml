@@ -1,0 +1,5 @@
+suites:
+    main:
+        namespace: MemeServer
+        psr4_prefix: MemeServer
+        src_path: app
