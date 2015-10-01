@@ -26,3 +26,8 @@ Route::get('image/list', [
     'as'    => 'image.list',
     'uses'  => 'ImageController@all'
 ]);
+
+Route::get('image', [
+    'as'    => 'image.index',
+    'uses'  => 'ImageController@index'
+]);

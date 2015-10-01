@@ -14,9 +14,33 @@ class Image extends Model
         'image_path',
         'token'
     ];
+    /**
+     * Essas imagens devem estar no diretório public/
+     * @var array
+     */
     private static $defaults = [
         [
             'name'      => 'earth',
+            'path'      => '/images/defaults/',
+            'extension' => '.jpg'
+        ],
+        [
+            'name'      => 'jjam',
+            'path'      => '/images/defaults/',
+            'extension' => '.jpg'
+        ],
+        [
+            'name'      => 'moon',
+            'path'      => '/images/defaults/',
+            'extension' => '.jpg'
+        ],
+        [
+            'name'      => 'nebula',
+            'path'      => '/images/defaults/',
+            'extension' => '.jpg'
+        ],
+        [
+            'name'      => 'wanderer',
             'path'      => '/images/defaults/',
             'extension' => '.jpg'
         ],
@@ -38,6 +62,8 @@ class Image extends Model
         ]
     ];
 
+    protected static $publicImageDirectory = 'images/';
+
 
     public static function getTextCoordinates($position = 'bottom')
     {
@@ -46,22 +72,48 @@ class Image extends Model
 
     public static function getFontFile()
     {
-        return base_path() . '/resources/assets/font/impact.ttf';
+        return base_path() . '/resources/assets/fonts/impact.ttf';
     }
 
     const tokenRegex = '/^201[5-6]((0[1-9])|(1[0-2]))((3[0-1])|([1-2][1-9]))((2[0-3])|([0-1][0-9]))([0-5][0-9])([0-5][0-9]).{4}$/i';
 
-    public static function getDefaults()
+    public static function getDefaultsUri()
     {
         $defaults = [];
         foreach(self::$defaults as $default){
-            $defaults[] = self::buildImagePath($default);
+            $defaults[] = self::buildImageUri($default);
         }
         $defaults = new Collection($defaults);
         return $defaults->pluck('path');
     }
 
-    private static function buildImagePath($image)
+    public static function getDefaultsUrl()
+    {
+        $defaults = [];
+        foreach(self::$defaults as $default){
+            $defaults[] = self::buildImageUrl($default);
+        }
+        $defaults = new Collection($defaults);
+        return $defaults->pluck('path');
+    }
+
+    public static function getDefaultsFormatted()
+    {
+        $defaults = [];
+        foreach(self::$defaults as $default){
+            $defaults[] = self::buildImageUrl($default);
+        }
+        $defaults = new Collection($defaults);
+        return $defaults;
+    }
+
+    private static function buildImageUrl($image)
+    {
+        $image['path'] = asset(self::$publicImageDirectory . $image['name'] . $image['extension']);
+        return $image;
+    }
+
+    private static function buildImageUri($image)
     {
         $image['path'] = public_path() . $image['path'] . $image['name'] . $image['extension'];
         return $image;

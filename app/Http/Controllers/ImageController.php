@@ -26,6 +26,12 @@ class ImageController extends Controller
         $this->manager = new ImageManager();
     }
 
+    public function index()
+    {
+        $images = Image::getDefaultsFormatted();
+        return view('images.index', compact('images'));
+    }
+
     public function get()
     {
         return 'Ok';
@@ -38,46 +44,93 @@ class ImageController extends Controller
      */
     public function store(Request $request)
     {
-        $this->validate($request, [
-            'top' => 'required|max:'. Image::$maxCharCount,
+        $validator = Validator::make($request->all(), [
+            'top' => 'max:'. Image::$maxCharCount,
             'bottom' => 'required|max:'. Image::$maxCharCount,
-            'image' => ''
+            'image' => 'required'
         ]);
 
-        $image = $this->manager->make(public_path(). '/images/earth.jpg');
+        if($validator->fails()){
+            $errors = '';
+            foreach($validator->errors()->all() as $error){
+                $errors .= "<br/>" . $error;
+            }
+
+            return response('Erro(s) de validação: ' . $errors, 500);
+        }
+
+        $image = $request->get('image');
+        if(substr($image, -4) !== '.jpg'){
+            $image .= '.jpg';
+        }
+
+        $imageObject = $this->manager->make(public_path(). '/images/' . $image);
         $token = Image::generateImageToken();
-        $path = public_path() . '/images/' . $token;
+        $path = public_path() . '/images/' . $token . '.jpg';
 
-        $image = $this->write($image, 'MAX LENGTH IS 22!');
-        $image = $this->write($image, 'MAX LENGTH IS 22!', 'top');
+        $imageObject = $this->write($imageObject, $request->get('bottom'));
 
-        $image->save();
+        if($request->get('top'))
+            $imageObject = $this->write($imageObject, $request->get('top'), 'top');
+
+        $result = $imageObject->save($path);
+
+        if($result){
+            return [
+                'message'     => 'Your image was saved successfully',
+                'token'       => $token,
+                'image_src'   => asset('images/'.$token.'.jpg')
+            ];
+        }
     }
 
     /**
-     * Get all defaut images;
+     * Get all registered public images and build the links.
+     * Send all avaliable images to user request;
      */
     public function all()
     {
-        $image = $this->manager->make(public_path(). '/images/earth.jpg');
-
-        dd(Image::generateImageToken());
-        // $image->save(public_path().'/images/foobar.jpg');
-        //return Image::getDefaults();
+        return Image::getDefaultsUrl();
     }
 
     private function write($image, $text, $position = 'bottom')
     {
-        $impact = Image::getFontFile();
+        $image->insert($this->addTextLayer($image, $text, $position));
+
+        return $image;
+    }
+
+    private function addTextLayer($image, $text, $position)
+    {
         $coordinates = Image::getTextCoordinates($position);
-        $image->text($text, $coordinates['x'], $coordinates['y'], function($font) use ($impact) {
-            $font->file($impact);
+        $textLayer = $this->manager->canvas(
+            $image->width(),
+            $image->height(),
+            [0, 0, 0, 0]
+        );
+
+        for( $x = -2; $x <= 2; $x++ ) {
+            for( $y = -2; $y <= 2; $y++ ) {
+                $textLayer->text($text, $coordinates['x'] + $x, $coordinates['y'] + $y, function($font) {
+                    $font->file(Image::getFontFile());
+                    $font->size(85);
+                    $font->color('#000'); // Glow color
+                    $font->align('center');
+                    $font->valign('top');
+                });
+            }
+        }
+
+        //$textLayer->blur(10);
+
+        $textLayer->text($text, $coordinates['x'], $coordinates['y'], function($font) {
+            $font->file(Image::getFontFile());
             $font->size(85);
-            $font->color('#FFF');
+            $font->color('#FFF'); // Text color
             $font->align('center');
             $font->valign('top');
         });
 
-        return $image;
+        return $textLayer;
     }
 }
